@@ -1,0 +1,70 @@
+doctype html
+html(lang="en")
+    head
+        meta(charset="UTF-8")
+        meta(name="viewport", content="width=device-width, initial-scale=1")
+        title Add product
+
+        style.
+            body {
+                margin: 0;
+                padding: 0;
+                font-family: Arial, sans-serif;
+                background-color: #f5f5f5;
+            }
+
+            header {
+                background-color: #ffffff;
+                padding: 15px 20px;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            }
+
+            nav ul {
+                list-style: none;
+                margin: 0;
+                padding: 0;
+                display: flex;
+                gap: 20px;
+            }
+
+            nav ul li a {
+                text-decoration: none;
+                color: #333;
+                font-weight: 600;
+            }
+
+            nav ul li a:hover {
+                color: #007bff;
+            }
+
+            main {
+                max-width: 800px;
+                margin: 40px auto;
+                padding: 20px;
+                background: #ffffff;
+                border-radius: 10px;
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+            }
+
+            main h1 {
+                margin-top: 0;
+            }
+
+            form {
+                display: none;
+            }
+
+    body
+        header
+            nav.navbar.navbar-expand-lg.navbar-light.bg-light
+                ul
+                    li
+                        a(href="/") Shop
+                    li
+                        a(href="/add-product") Add product
+
+        main
+            h1 Products
+            p List of all the products....
+
+        form

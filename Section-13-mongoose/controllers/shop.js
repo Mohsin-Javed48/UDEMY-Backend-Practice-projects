@@ -1,9 +1,9 @@
 const Product = require("../models/product");
-const { getDb } = require("../util/database");
 const mongodb = require("mongodb");
+const Order = require("../models/order");
 
 exports.getProducts = (req, res, next) => {
-  Product.fetchAll()
+  Product.find()
     .then((products) => {
       res.render("shop/product-list", {
         prods: products,
@@ -18,28 +18,27 @@ exports.getProducts = (req, res, next) => {
 
 exports.getProduct = (req, res, next) => {
   const prodId = req.params.productId;
-  // Product.findAll({ where: { id: prodId } })
-  //   .then(products => {
-  //     res.render('shop/product-detail', {
-  //       product: products[0],
-  //       pageTitle: products[0].title,
-  //       path: '/products'
-  //     });
-  //   })
-  //   .catch(err => console.log(err));
+  console.log("Requested Product ID:", prodId);
   Product.findById(prodId)
     .then((product) => {
+      if (!product) {
+        return res.redirect("/products");
+      }
+      console.log("Product Details:", product);
       res.render("shop/product-detail", {
         product: product,
         pageTitle: product.title,
         path: "/products",
       });
     })
-    .catch((err) => console.log(err));
+    .catch((err) => {
+      console.log(err);
+      res.redirect("/products");
+    });
 };
 
 exports.getIndex = (req, res, next) => {
-  Product.fetchAll()
+  Product.find()
     .then((products) => {
       res.render("shop/index", {
         prods: products,
@@ -54,8 +53,9 @@ exports.getIndex = (req, res, next) => {
 
 exports.getCart = (req, res, next) => {
   req.user
-    .getCart()
-    .then((products) => {
+    .populate("cart.items.productId")
+    .then((user) => {
+      const products = user.cart.items;
       res.render("shop/cart", {
         path: "/cart",
         pageTitle: "Your Cart",
@@ -67,14 +67,13 @@ exports.getCart = (req, res, next) => {
 
 exports.postCart = (req, res, next) => {
   const prodId = req.body.productId;
-  const db = getDb();
   Product.findById(prodId)
     .then((product) => {
-      req.user.addToCart(product);
-      res.redirect("/cart");
+      return req.user.addToCart(product);
     })
     .then((result) => {
       console.log("ADDED TO CART");
+      res.redirect("/cart");
     })
     .catch((err) => console.log(err));
   // let fetchedCart;
@@ -120,26 +119,25 @@ exports.postCartDeleteProduct = (req, res, next) => {
 };
 
 exports.postOrder = (req, res, next) => {
-  const db = getDb();
   return req.user
-    .getCart()
+    .populate("cart.items.productId")
     .then((products) => {
-      const order = {
-        items: products,
+      const product = products.cart.items.map((i) => {
+        return { quantity: i.quantity, product: { ...i.productId._doc } };
+      });
+
+      const order = new Order({
         user: {
-          _id: new mongodb.ObjectId(req.user._id),
-          username: req.user.username,
+          userId: req.user._id,
+          name: req.user.name,
         },
-      };
-      return db.collection("orders").insertOne(order);
+        products: product,
+      });
+      return order.save();
     })
     .then((result) => {
-      return db
-        .collection("users")
-        .updateOne(
-          { _id: new mongodb.ObjectId(req.user._id) },
-          { $set: { cart: { items: [] } } }
-        );
+      req.user.cart = { items: [] };
+      return req.user.save();
     })
     .then((result) => {
       res.redirect("/orders");
@@ -148,8 +146,7 @@ exports.postOrder = (req, res, next) => {
 };
 
 exports.getOrders = (req, res, next) => {
-  req.user
-    .getOrders()
+  Order.find({ "user.userId": req.user._id })
     .then((orders) => {
       res.render("shop/orders", {
         path: "/orders",

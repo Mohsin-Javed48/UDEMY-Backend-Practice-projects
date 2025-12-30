@@ -1,5 +1,7 @@
 require("dotenv").config();
 const path = require("path");
+const session = require("express-session");
+const MongoDbStore = require("connect-mongodb-session")(session);
 
 const express = require("express");
 const bodyParser = require("body-parser");
@@ -20,8 +22,27 @@ const authRoutes = require("./routes/auth");
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, "public")));
 
+const store = new MongoDbStore({
+  uri: process.env.MONGODB_URI,
+  collection: "sessions",
+});
+
+app.use(
+  session({
+    secret: "my secret",
+    resave: false,
+    saveUninitialized: false,
+    store: store,
+  })
+);
+
 app.use((req, res, next) => {
-  User.findById("5bab316ce0a7c75f783cb8a8")
+  req.isLoggedIn = req.session.isLoggedIn;
+  next();
+});
+
+app.use((req, res, next) => {
+  User.findById("69521fb2ffad4917678d19b9")
     .then((user) => {
       req.user = user;
       next();
@@ -53,7 +74,7 @@ mongoose
         user.save();
       }
     });
-    app.listen(3000);
+    app.listen(4000);
   })
   .catch((err) => {
     console.log(err);

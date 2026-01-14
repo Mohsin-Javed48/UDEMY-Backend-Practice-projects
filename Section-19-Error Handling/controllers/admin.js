@@ -1,6 +1,7 @@
+const mongoose = require("mongoose");
 const Product = require("../models/product");
 const validationErrors = require("express-validator/check").validationResult;
-
+const { get500 } = require("./error");
 exports.getAddProduct = (req, res, next) => {
   res.render("admin/edit-product", {
     pageTitle: "Add Product",
@@ -35,6 +36,7 @@ exports.postAddProduct = (req, res, next) => {
   }
 
   const product = new Product({
+    _id: new mongoose.Types.ObjectId("64bfbf4f2f9b2565f4e4d3c1"), // Generate a new ObjectId
     title: title,
     price: price,
     description: description,
@@ -49,7 +51,9 @@ exports.postAddProduct = (req, res, next) => {
       res.redirect("/admin/products");
     })
     .catch((err) => {
-      console.log(err);
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
     });
 };
 
@@ -72,7 +76,11 @@ exports.getEditProduct = (req, res, next) => {
         errorMessage: null,
       });
     })
-    .catch((err) => console.log(err));
+    .catch((err) => {
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+    });
 };
 
 exports.postEditProduct = (req, res, next) => {

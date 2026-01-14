@@ -1,7 +1,7 @@
 const express = require("express");
 const { check } = require("express-validator/check");
 const User = require("../models/user");
-
+const errorController = require("../controllers/error");
 const authController = require("../controllers/auth");
 
 const router = express.Router();
@@ -83,5 +83,6 @@ router.post("/reset", authController.postReset);
 router.get("/reset/:token", authController.getNewPassword);
 
 router.post("/new-password", authController.postNewPassword);
+
 
 module.exports = router;

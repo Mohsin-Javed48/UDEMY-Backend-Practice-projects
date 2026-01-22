@@ -1,7 +1,17 @@
 const e = require("express");
 
 exports.getPosts = (req, res, next) => {
-  res.status(201).json({ message: "Post created successfully!" });
+  res.status(201).json({
+    _id: "123456789",
+    title: "Duck",
+    content: "Hello the beautiful duck",
+    imageUrl: "images/duck.jpg",
+    date: new Date(),
+    creator: {
+      name: "Mohsin",
+    },
+    createdAt: new Date(),
+  });
 };
 
 exports.createPost = (req, res, next) => {

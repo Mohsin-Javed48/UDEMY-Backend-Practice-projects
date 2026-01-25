@@ -50,7 +50,11 @@ class Feed extends Component {
       page--;
       this.setState({ postPage: page });
     }
-    fetch("http://localhost:8080/feed/posts")
+    fetch("http://localhost:8080/feed/posts", {
+      headers: {
+        Authorization: "Bearer " + this.props.token,
+      },
+    })
       .then((res) => {
         console.log(res);
         if (res.status !== 201 && res.status !== 200) {

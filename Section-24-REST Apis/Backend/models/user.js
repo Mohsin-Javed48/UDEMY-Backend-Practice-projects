@@ -6,7 +6,7 @@ const userSchema = new Schema({
     type: String,
     required: true,
   },
-  pasword: {
+  password: {
     type: String,
     required: true,
   },
@@ -19,7 +19,7 @@ const userSchema = new Schema({
   },
   status: {
     type: String,
-    required: true,
+    default: "I am new!",
   },
 });
 

@@ -4,6 +4,7 @@ const { body } = require("express-validator");
 const multer = require("multer");
 const path = require("path");
 const Post = require("../models/post");
+const authToken = require("../middlewares/auth-token");
 
 const feedController = require("../controllers/feed");
 
@@ -31,7 +32,7 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-router.get("/posts", feedController.getPosts);
+router.get("/posts", authToken, feedController.getPosts);
 
 router.post(
   "/post",

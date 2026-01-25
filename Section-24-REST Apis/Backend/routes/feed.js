@@ -5,7 +5,6 @@ const multer = require("multer");
 const path = require("path");
 const Post = require("../models/post");
 const authToken = require("../middlewares/auth-token");
-
 const feedController = require("../controllers/feed");
 
 const fileStorage = multer.diskStorage({
@@ -47,6 +46,8 @@ router.post(
       .isLength({ min: 5 })
       .withMessage("Content must be at least 5 characters long"),
   ],
+
+  authToken,
   feedController.createPost,
 );
 
@@ -72,6 +73,7 @@ router.get("/post/:postId", (req, res, next) => {
 
 router.put(
   "/post/:postId",
+  multer({ storage: fileStorage, fileFilter: fileFilter }).single("image"),
   [
     body("title")
       .trim()
@@ -85,6 +87,6 @@ router.put(
   feedController.updatePost,
 );
 
-router.delete("/post/:postId", feedController.deletePost);
+router.delete("/post/:postId", authToken, feedController.deletePost);
 
 module.exports = router;

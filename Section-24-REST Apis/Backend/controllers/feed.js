@@ -3,6 +3,7 @@ const { validationResult } = require("express-validator");
 const Post = require("../models/post");
 const fs = require("fs");
 const path = require("path");
+const User = require("../models/user");
 
 exports.getPosts = (req, res, next) => {
   Post.find()
@@ -43,15 +44,33 @@ exports.createPost = (req, res, next) => {
     title: title,
     content: content,
     imageUrl: imageUrl,
-    creator: {
-      name: "Mohsin",
-    },
+    creator: req.userId,
   });
 
+  let creator;
   post
     .save()
     .then((result) => {
-      console.log(result);
+      console.log("REQ.USERID", req.userId);
+      return User.findById(req.userId);
+    })
+    .then((user) => {
+      console.log("USER", user);
+      if (!user) {
+        const error = new Error("User not found.");
+        error.statusCode = 404;
+        throw error;
+      }
+      creator = user;
+      user.posts.push(post);
+      return user.save();
+    })
+    .then((result) => {
+      res.status(201).json({
+        message: "Post created successfully!",
+        post: post,
+        creator: { _id: creator._id, name: creator.name },
+      });
     })
     .catch((err) => {
       if (!err.statusCode) {
@@ -59,22 +78,6 @@ exports.createPost = (req, res, next) => {
       }
       next(err);
     });
-
-  console.log("product created sussessfully");
-  res.status(200).json({
-    message: "post created  successfully.",
-    post: [
-      {
-        _id: Date.now().toString(),
-        title: title,
-        content: content,
-        creator: {
-          name: "Mohsin",
-        },
-        createdAt: new Date(),
-      },
-    ],
-  });
 };
 
 exports.updatePost = (req, res, next) => {
@@ -105,6 +108,11 @@ exports.updatePost = (req, res, next) => {
         error.statusCode = 404;
         return next(error);
       }
+      if (post.creator.toString() !== req.userId) {
+        const error = new Error("Not authorized to edit this post.");
+        error.statusCode = 403;
+        return next(error);
+      }
       if (imageUrl !== post.imageUrl) {
         clearImage(post.imageUrl);
       }
@@ -133,9 +141,29 @@ exports.deletePost = (req, res, next) => {
         error.statusCode = 404;
         return next(error);
       }
+      console.log("POST CREATOR", post.creator.toString());
+      console.log("REQ.USERID", req.userId);
+      if (post.creator.toString() !== req.userId) {
+        const error = new Error("Not authorized to delete this post.");
+        error.statusCode = 403;
+        throw error;
+      }
       // Delete the image associated with the post
       clearImage(post.imageUrl);
       return Post.findByIdAndDelete(postId);
+    })
+    .then((result) => {
+      return User.findById(req.userId);
+    })
+    .then((user) => {
+      if (!user) {
+        const error = new Error("User not found.");
+        error.statusCode = 404;
+        throw error;
+      }
+      console.log(user);
+      user.posts.pull(postId);
+      return user.save();
     })
     .then((result) => {
       console.log("Post deleted", result);

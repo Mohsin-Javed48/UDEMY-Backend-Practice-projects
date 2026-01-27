@@ -84,6 +84,7 @@ router.put(
       .isLength({ min: 5 })
       .withMessage("Content must be at least 5 characters long"),
   ],
+  authToken,
   feedController.updatePost,
 );
 

@@ -4,9 +4,11 @@ const Post = require("../models/post");
 const fs = require("fs");
 const path = require("path");
 const User = require("../models/user");
+const socket = require("../socket");
 
 exports.getPosts = (req, res, next) => {
   Post.find()
+    .sort({ createdAt: -1 })
     .then((posts) => {
       res.status(200).json({
         message: "Fetched posts successfully.",
@@ -66,6 +68,11 @@ exports.createPost = (req, res, next) => {
       return user.save();
     })
     .then((result) => {
+      socket.getIO().emit("posts", {
+        action: "create",
+        post: post,
+        creator: { _id: creator._id, name: creator.name },
+      });
       res.status(201).json({
         message: "Post created successfully!",
         post: post,
@@ -81,12 +88,11 @@ exports.createPost = (req, res, next) => {
 };
 
 exports.updatePost = (req, res, next) => {
-  console.log("HELLO WORLD");
   const postId = req.params.postId;
   const title = req.body.title;
   const content = req.body.content;
   const errors = validationResult(req);
-  console.log("title", title);
+
   let imageUrl = req.body.image;
   if (!errors.isEmpty()) {
     const error = new Error("Validation failed, entered data is incorrect.");
@@ -102,13 +108,17 @@ exports.updatePost = (req, res, next) => {
     return next(error);
   }
   Post.findById(postId)
+    .populate("creator")
     .then((post) => {
       if (!post) {
         const error = new Error("Could not find post.");
         error.statusCode = 404;
         return next(error);
       }
-      if (post.creator.toString() !== req.userId) {
+      console.log("POST CREATOR", post.creator[0]._id.toString());
+      console.log("REQ.USERID", req.userId);
+
+      if (post.creator[0]._id.toString() !== req.userId) {
         const error = new Error("Not authorized to edit this post.");
         error.statusCode = 403;
         return next(error);
@@ -121,8 +131,19 @@ exports.updatePost = (req, res, next) => {
       post.imageUrl = imageUrl;
       return post.save();
     })
-    .then((result) => {
-      res.status(200).json({ message: "Post updated!", post: result });
+    .then((post) => {
+      socket.getIO().emit("posts", {
+        action: "update",
+        post: {
+          _id: post._id,
+          title: post.title,
+          content: post.content,
+          imageUrl: post.imageUrl,
+          creator: post.creator._id,
+        },
+      });
+
+      res.status(200).json({ message: "Post updated!", post: post });
     })
     .catch((err) => {
       if (!err.statusCode) {
@@ -141,8 +162,7 @@ exports.deletePost = (req, res, next) => {
         error.statusCode = 404;
         return next(error);
       }
-      console.log("POST CREATOR", post.creator.toString());
-      console.log("REQ.USERID", req.userId);
+
       if (post.creator.toString() !== req.userId) {
         const error = new Error("Not authorized to delete this post.");
         error.statusCode = 403;
@@ -166,6 +186,7 @@ exports.deletePost = (req, res, next) => {
       return user.save();
     })
     .then((result) => {
+      socket.getIO().emit("posts", { action: "delete", post: postId });
       console.log("Post deleted", result);
       res.status(200).json({ message: "Post deleted successfully." });
     })

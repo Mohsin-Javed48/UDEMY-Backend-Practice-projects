@@ -50,8 +50,6 @@ module.exports = {
       throw error;
     }
 
-    req.user = user;
-
     const isEqual = await bcrypt.compare(password, user.password);
 
     if (!isEqual) {
@@ -97,23 +95,52 @@ module.exports = {
       throw error;
     }
 
+    const user = await User.findById(req.userId);
+    if (!user) {
+      const error = new Error("Invalid user.");
+      error.statusCode = 401;
+      throw error;
+    }
+
     const post = new Post({
       title: postInput.title,
       content: postInput.content,
       imageUrl: postInput.imageUrl,
-      creator: req.user._id,
+      creator: user,
     });
 
     const createdPost = await post.save();
-    const user = await User.findById(req.user._id);
+    await createdPost.populate("creator");
+
     user.posts.push(createdPost);
     await user.save();
 
     return {
       ...createdPost._doc,
       _id: createdPost._id.toString(),
+      creator: {
+        ...createdPost.creator._doc,
+        _id: createdPost.creator._id.toString(),
+      },
       createdAt: createdPost.createdAt.toISOString(),
       updatedAt: createdPost.updatedAt.toISOString(),
     };
+  },
+
+  getPosts: async function (args, req) {
+    if (!req.isAuth) {
+      const error = new Error("Not authenticated!");
+      error.statusCode = 401;
+      throw error;
+    }
+    const posts = await Post.find().populate("creator");
+    return posts.map((post) => {
+      return {
+        ...post._doc,
+        _id: post._id.toString(),
+        createdAt: post.createdAt.toISOString(),
+        updatedAt: post.updatedAt.toISOString(),
+      };
+    });
   },
 };

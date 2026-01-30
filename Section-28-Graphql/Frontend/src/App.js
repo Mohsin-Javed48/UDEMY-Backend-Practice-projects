@@ -89,15 +89,15 @@ class App extends Component {
         return res.json();
       })
       .then((resData) => {
-        console.log(resData);
+        console.log("RES DATA", resData);
         this.setState({
           isAuth: true,
-          token: resData.token,
+          token: resData.data.token,
           authLoading: false,
-          userId: resData.userId,
+          userId: resData.data.userId,
         });
-        localStorage.setItem("token", resData.token);
-        localStorage.setItem("userId", resData.userId);
+        localStorage.setItem("token", resData.data.login.token);
+        localStorage.setItem("userId", resData.data.login.userId);
         const remainingMilliseconds = 60 * 60 * 1000;
         const expiryDate = new Date(
           new Date().getTime() + remainingMilliseconds,

@@ -6,6 +6,7 @@ const path = require("path");
 const graphqlHttp = require("express-graphql").graphqlHTTP;
 const graphqlSchema = require("./graphql/schema");
 const graphqlResolver = require("./graphql/resolver");
+const auth = require("./middlewares/auth");
 
 const app = express();
 
@@ -24,6 +25,8 @@ app.use((req, res, next) => {
   }
   next();
 });
+
+app.use(auth);
 
 app.use(
   "/graphql",
@@ -46,6 +49,9 @@ app.use(
 
 app.use((error, req, res, next) => {
   console.log(error);
+  if (res.headersSent) {
+    return next(error);
+  }
   const status = error.statusCode || 500;
   const message = error.message;
   const data = error.data;
@@ -61,3 +67,8 @@ mongoose
   .catch((err) => {
     console.log(err);
   });
+
+const clearImage = (filePath) => {
+  filepath = path.join(__dirname, "../public", filePath);
+  fs.unlink(filepath, (err) => console.log(err));
+};

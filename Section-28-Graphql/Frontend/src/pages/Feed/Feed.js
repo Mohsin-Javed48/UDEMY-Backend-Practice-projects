@@ -49,10 +49,30 @@ class Feed extends Component {
       page--;
       this.setState({ postPage: page });
     }
-    fetch("http://localhost:8080/feed/posts", {
+    const graphqlQuery = {
+      query: `
+    query {
+      getPosts {
+        _id
+        title
+        content
+        imageUrl
+        creator {
+          name
+        }
+        createdAt
+        updatedAt
+      }
+    }
+  `,
+    };
+    fetch("http://localhost:8080/graphql", {
+      method: "POST",
       headers: {
         Authorization: "Bearer " + this.props.token,
+        "Content-Type": "application/json",
       },
+      body: JSON.stringify(graphqlQuery),
     })
       .then((res) => {
         console.log(res);
@@ -63,9 +83,13 @@ class Feed extends Component {
       })
       .then((resData) => {
         // Handle different response structures
+        console.log("RES DATA POSTS", resData);
         const posts =
-          resData.posts || (Array.isArray(resData) ? resData : [resData]);
-        const totalItems = resData.totalItems || posts.length;
+          resData.data.getPosts ||
+          (Array.isArray(resData.data.getPosts)
+            ? resData
+            : [resData.data.getPosts]);
+        const totalItems = resData.data.getPosts || posts.length;
         this.setState({
           posts: posts.map((post) => {
             return {
@@ -130,18 +154,10 @@ class Feed extends Component {
       console.log(key, value);
     }
 
-    let url = "http://localhost:8080/graphql";
-    let method = "POST";
-
-    if (this.state.editPost) {
-      url = "http://localhost:8080/graphql";
-      method = "PUT";
-    }
-    const graphqlQuery = this.state.editPost
-      ? {
-          query: `
+    const graphqlQuery = {
+      query: `
         mutation {
-          editPost(postId: "${this.state.editPost._id}", postInput: {title: "${postData.title}", content: "${postData.content}"}) {
+          createPost(postInput: {title: "${postData.title}", content: "${postData.content}",  imageUrl: "some url"}) {
             _id
             title
             content
@@ -153,29 +169,16 @@ class Feed extends Component {
           }
         }
       `,
-        }
-      : {
-          query: `
-        mutation {
-          createPost(postInput: {title: "${postData.title}", content: "${postData.content}"}) {
-            _id
-            title
-            content
-            creator {
-              name
-            }
-            createdAt
-            imageUrl
-          }
-        }
-      `,
-        };
+    };
+    const token = localStorage.getItem("token");
 
-    fetch(url, {
-      method: method,
+    console.log("Token:", token);
+
+    fetch("http://localhost:8080/graphql", {
+      method: "POST",
       body: JSON.stringify(graphqlQuery),
       headers: {
-        Authorization: "Bearer " + this.props.token,
+        Authorization: "Bearer " + token,
         "Content-Type": "application/json",
       },
     })
@@ -186,21 +189,21 @@ class Feed extends Component {
         return res.json();
       })
       .then((resData) => {
-        console.log("Pussy", resData);
-        // Handle case where post is an array or an object
-        // const postData = Array.isArray(resData.post)
-        //   ? resData.post[0]
-        //   : resData.post;
-        // const post = {
-        //   _id: postData._id,
-        //   title: postData.title,
-        //   content: postData.content,
-        //   creator: postData.creator,
-        //   createdAt: postData.createdAt,
-        //   imageUrl: postData.imageUrl,
-        // };
+        const postData = Array.isArray(resData.post)
+          ? resData.post[0]
+          : resData.post;
+
+        const post = {
+          _id: postData.data.createdPost._id,
+          title: postData.data.createdPost.title,
+          content: postData.data.createdPost.content,
+          creator: postData.data.createdPost.creator,
+          createdAt: postData.data.createdPost.createdAt,
+          imageUrl: postData.data.createdPost.imageUrl,
+        };
         this.setState((prevState) => {
           return {
+            posts: prevState.posts.concat(post),
             isEditing: false,
             editPost: null,
             editLoading: false,

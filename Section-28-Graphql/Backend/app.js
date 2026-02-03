@@ -9,6 +9,7 @@ const graphqlResolver = require("./graphql/resolver");
 const auth = require("./middlewares/auth");
 const multer = require("multer");
 const fs = require("fs");
+const hemlet = require("helmet");
 
 const app = express();
 
@@ -96,6 +97,8 @@ app.use(
   }),
 );
 
+app.use(hemlet());
+
 app.use((error, req, res, next) => {
   console.log(error);
   if (res.headersSent) {
@@ -106,7 +109,6 @@ app.use((error, req, res, next) => {
   const data = error.data;
   res.status(status).json({ message: message, data: data });
 });
-
 mongoose
   .connect(process.env.MONGODB_URI)
   .then((result) => {

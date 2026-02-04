@@ -10,6 +10,7 @@ const auth = require("./middlewares/auth");
 const multer = require("multer");
 const fs = require("fs");
 const hemlet = require("helmet");
+const compression = require("compression");
 
 const app = express();
 
@@ -98,6 +99,7 @@ app.use(
 );
 
 app.use(hemlet());
+app.use(compression());
 
 app.use((error, req, res, next) => {
   console.log(error);
